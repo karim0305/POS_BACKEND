@@ -44,7 +44,7 @@ async create(createSaleDto: CreateSaleDto): Promise<{ success: boolean; message:
       $push: {
         salestransection: {
           invoiceNo: createSaleDto.Invoice,
-          AmmountType: "Cash", // default
+          AmmountType: "Bill", // default
           paidAmount: createSaleDto.PayAmmount,
           date: new Date(),
         },
@@ -55,7 +55,7 @@ async create(createSaleDto: CreateSaleDto): Promise<{ success: boolean; message:
   // 5️⃣ Return response
   return {
     success: true,
-    message: `✅ Sale created successfully}`,
+    message: `✅ Sale created successfully`,
     data: savedSale,
   };
 }
@@ -69,6 +69,7 @@ async findAll(): Promise<any[]> {
   const sales = await this.saleModel
     .find()
     .populate('items.product')
+      .sort({ createdAt: -1 }) 
     .exec();
 
   // Populate customer manually if it's an ObjectId
@@ -91,25 +92,34 @@ async findAll(): Promise<any[]> {
 }
 
 
-  async findOne(id: string): Promise<Sale> {
-    const sale = await this.saleModel.findById(id).populate('items.product').exec();
-    if (!sale) {
-      throw new NotFoundException(`Sale with ID ${id} not found`);
-    }
-    return sale;
+async findOne(id: string): Promise<any> {
+  const sale = await this.saleModel.findById(id).populate('items.product').exec();
+
+  if (!sale) {
+    throw new NotFoundException(`Sale with ID ${id} not found`);
   }
 
-  async update(id: string, updateSaleDto: UpdateSaleDto): Promise<Sale> {
-    const updatedSale = await this.saleModel
-      .findByIdAndUpdate(id, updateSaleDto, { new: true })
-      .populate('items.product')
-      .exec();
+  let customerName: string;
 
-    if (!updatedSale) {
-      throw new NotFoundException(`Sale with ID ${id} not found`);
-    }
-    return updatedSale;
+  // If it's an ObjectId -> fetch from customer collection
+  if (mongoose.Types.ObjectId.isValid(sale.customer as any)) {
+    const customer = await this.customerModel.findById(sale.customer).select('name');
+    customerName = customer ? customer.name : 'Unknown Customer';
+  } else {
+    // Already a string like "Walk-in Customer"
+    customerName = sale.customer as any;
   }
+
+  return {
+    ...sale.toObject(),
+    customer: customerName, // override with proper name
+  };
+}
+
+
+
+
+
 
   async remove(id: string): Promise<void> {
     const result = await this.saleModel.findByIdAndDelete(id).exec();
@@ -149,6 +159,147 @@ async findAll(): Promise<any[]> {
 }
 
 
+async getTodayStats() {
+    // Get today's start and end time
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Aggregate stats
+    const result = await this.saleModel.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfDay, $lte: endOfDay },
+          status: 'COMPLETED', // optional filter if you only want completed
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalSales: { $sum: '$total' },
+          avgSales: { $avg: '$total' },
+          totalItems: { $sum: { $size: '$items' } }, // count items array length
+          count: { $sum: 1 }, // number of invoices
+        },
+      },
+    ]);
+
+    if (result.length === 0) {
+      return {
+        totalSales: 0,
+        avgSales: 0,
+        totalItems: 0,
+        invoices: 0,
+      };
+    }
+
+    return {
+      totalSales: result[0].totalSales,
+      avgSales: result[0].avgSales,
+      totalItems: result[0].totalItems,
+      invoices: result[0].count,
+    };
+  }
+
+// async update(id: string, updateSaleDto: UpdateSaleDto): Promise<Sale> {
+//   const sale = await this.saleModel.findById(id);
+
+//   if (!sale) {
+//     throw new NotFoundException('Sale not found');
+//   }
+
+//   // ✅ Only update items if provided
+//   if (updateSaleDto.items && updateSaleDto.items.length > 0) {
+//     sale.items = updateSaleDto.items.map((item) => ({
+//       product: typeof item.product === 'string' ? new Types.ObjectId(item.product) : item.product,
+//       quantity: item.quantity,
+//       price: item.price,
+//     }));
+//   }
+
+//   if (updateSaleDto.status) sale.status = updateSaleDto.status;
+//   if (updateSaleDto.PayAmmount) sale.PayAmmount = updateSaleDto.PayAmmount;
+//   if (updateSaleDto.total) sale.total = updateSaleDto.total;
+
+//   // ✅ Ensure updatedAt works without touching schema
+//   (sale as any).updatedAt = new Date();
+
+//   return await sale.save();
+// }
+
+
+async update(id: string, updateSaleDto: UpdateSaleDto): Promise<Sale> {
+  const sale = await this.saleModel.findById(id);
+  if (!sale) {
+    throw new NotFoundException('Sale not found');
+  }
+
+  // --- Update items if provided ---
+  if (updateSaleDto.items && updateSaleDto.items.length > 0) {
+    sale.items = updateSaleDto.items.map((item) => ({
+      product:
+        typeof item.product === 'string'
+          ? new Types.ObjectId(item.product)
+          : item.product,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+  }
+
+  if (updateSaleDto.status) sale.status = updateSaleDto.status;
+  if (updateSaleDto.PayAmmount) sale.PayAmmount = updateSaleDto.PayAmmount;
+  if (updateSaleDto.total) sale.total = updateSaleDto.total;
+
+  (sale as any).updatedAt = new Date();
+
+  const updatedSale = await sale.save();
+
+  // --- Update or push in customer salestransection if status is COMPLETED ---
+  if (updateSaleDto.status === 'COMPLETED' && sale.customer) {
+    const customer = await this.customerModel.findById(sale.customer);
+    if (customer) {
+      // Check if transaction with this invoice exists
+      const transactionIndex = customer.salestransection.findIndex(
+        (t: any) => t.invoiceNo === sale.Invoice,
+      );
+
+      if (transactionIndex !== -1) {
+        // ✅ Invoice exists -> update paidAmount
+        customer.salestransection[transactionIndex].paidAmount =
+          sale.PayAmmount ||
+          customer.salestransection[transactionIndex].paidAmount;
+
+        // ✅ Also update AmmountType (force-cast to any)
+        (customer.salestransection[transactionIndex] as any).AmmountType =
+          'Bill'; // default (same as create)
+      } else {
+        // ✅ Invoice not found -> push new transaction
+        (customer.salestransection as any).push({
+          invoiceNo: sale.Invoice,
+          AmmountType: 'Bill', // 👈 same as create
+          status: sale.status,
+          paidAmount: sale.PayAmmount || 0,
+          date: new Date(),
+        } as any);
+      }
+
+      await customer.save();
+    }
+  }
+
+  return updatedSale;
+}
+
+
+
+
+
+
+
+
+
+  
 
 }

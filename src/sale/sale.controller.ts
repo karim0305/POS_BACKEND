@@ -24,6 +24,11 @@ async create(
     return this.salesService.findAll();
   }
 
+  @Get('today-stats')
+  async getTodayStats() {
+    return this.salesService.getTodayStats();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a sale by ID' })
   @ApiResponse({ status: 200, description: 'Sale details', type: Sale })
@@ -51,4 +56,6 @@ async refundSale(@Param('id') id: string): Promise<{ success: boolean; message: 
   async remove(@Param('id') id: string): Promise<void> {
     return this.salesService.remove(id);
   }
+
+   
 }
