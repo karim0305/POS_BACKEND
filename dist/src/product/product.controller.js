@@ -18,7 +18,7 @@ const product_service_1 = require("./product.service");
 const create_product_dto_1 = require("./dto/create-product.dto");
 const update_product_dto_1 = require("./dto/update-product.dto");
 const platform_express_1 = require("@nestjs/platform-express");
-const multer_config_1 = require("../config/multer.config");
+const multer_config_1 = require("../../src/config/multer.config");
 let ProductsController = class ProductsController {
     productsService;
     constructor(productsService) {
