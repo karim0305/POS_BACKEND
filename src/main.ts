@@ -4,15 +4,18 @@ import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
-  // ✅ Static assets
- app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-  prefix: '/uploads', // 👈 must be '/uploads'
-});
+//   // ✅ Static assets
+//  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+//   prefix: '/uploads', // 👈 must be '/uploads'
+// });
 
   // ✅ Enable CORS
   app.enableCors({
@@ -46,3 +49,4 @@ async function bootstrap() {
   console.log(`📑 Swagger docs on http://localhost:${port}/docs`);
 }
 bootstrap();
+

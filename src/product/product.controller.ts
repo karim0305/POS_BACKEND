@@ -1,14 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+  UploadedFiles,
+} from '@nestjs/common';
 import { ProductsService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { multerConfig } from 'src/multer.config';
+import { multerConfig } from 'src/config/multer.config';
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
-
 
   // ✅ Create Product
   @Post()
@@ -17,7 +26,8 @@ export class ProductsController {
     @Body() createProductDto: CreateProductDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    const imageUrls = files?.map((file) => `/uploads/${file.filename}`) || [];
+    // 👇 Cloudinary returns secure_url in `file.path`
+    const imageUrls = files?.map((file) => (file as any).path) || [];
 
     return this.productsService.create({
       ...createProductDto,
@@ -33,43 +43,36 @@ export class ProductsController {
     return this.productsService.findAll();
   }
 
-  // ✅ Get One Product by ID (string, not number)
+  // ✅ Get One Product by ID
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
 
   // ✅ Update Product by ID
- @Patch(':id')
-@UseInterceptors(FilesInterceptor('images', 10, multerConfig)) // max 10 files
-async update(
-  @Param('id') id: string,
-  @Body() updateProductDto: UpdateProductDto,
-  @UploadedFiles() files: Express.Multer.File[],
-) {
-  // 👇 convert strings to numbers if coming from FormData
-  const price = updateProductDto.price ? Number(updateProductDto.price) : undefined;
-  const stock = updateProductDto.stock ? Number(updateProductDto.stock) : undefined;
+  @Patch(':id')
+  @UseInterceptors(FilesInterceptor('images', 10, multerConfig))
+  async update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const price = updateProductDto.price ? Number(updateProductDto.price) : undefined;
+    const stock = updateProductDto.stock ? Number(updateProductDto.stock) : undefined;
 
-  // 👇 handle new images if uploaded
-  const newImageUrls = files?.map((file) => `/uploads/${file.filename}`) || [];
+    const newImageUrls = files?.map((file) => (file as any).path) || [];
 
-  return this.productsService.update(id, {
-    ...updateProductDto,
-    ...(price !== undefined && { price }),
-    ...(stock !== undefined && { stock }),
-    ...(newImageUrls.length > 0 && { images: newImageUrls }), // only replace if new files uploaded
-  });
-}
-
+    return this.productsService.update(id, {
+      ...updateProductDto,
+      ...(price !== undefined && { price }),
+      ...(stock !== undefined && { stock }),
+      ...(newImageUrls.length > 0 && { images: newImageUrls }),
+    });
+  }
 
   // ✅ Delete Product by ID
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }
-
-
-
-  
 }

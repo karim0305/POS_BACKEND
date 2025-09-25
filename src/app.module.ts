@@ -11,6 +11,7 @@ import { SupplierModule } from './supplier/supplier.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CustomerModule } from './customer/customer.module';
 import { ReportsModule } from './reports/reports.module';
+import { CloudinaryModule } from './config/cloudinary.module';
 
 
 @Module({
@@ -26,6 +27,15 @@ import { ReportsModule } from './reports/reports.module';
         }
         if (!config.JWT_EXPIRES_IN) {
           throw new Error('JWT_EXPIRES_IN is required in .env');
+        }
+        if (!config.CLOUDINARY_CLOUD_NAME) {
+          throw new Error('CLOUDINARY_CLOUD_NAME is required in .env');
+        }
+        if (!config.CLOUDINARY_API_KEY) {
+          throw new Error('CLOUDINARY_API_KEY is required in .env');
+        }
+        if (!config.CLOUDINARY_API_SECRET) {
+          throw new Error('CLOUDINARY_API_SECRET is required in .env');
         }
         return config;
       },
@@ -48,9 +58,10 @@ import { ReportsModule } from './reports/reports.module';
     DashboardModule,
     CustomerModule,
     ReportsModule,
+    CloudinaryModule,
 
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
