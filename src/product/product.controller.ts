@@ -19,7 +19,6 @@ import { multerConfig } from 'src/config/multer.config';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  // ✅ Create Product
   @Post()
   @UseInterceptors(FilesInterceptor('images', 10, multerConfig)) // max 10 files
   async create(
