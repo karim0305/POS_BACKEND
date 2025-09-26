@@ -13,8 +13,11 @@ async function bootstrap() {
     app.useStaticAssets((0, path_1.join)(__dirname, '..', 'uploads'), {
         prefix: '/uploads',
     });
+    const frontendDomain = configService.get('VERCEL_DOMAIN') ||
+        configService.get('FRONTEND_DOMAIN') ||
+        '*';
     app.enableCors({
-        origin: configService.get('FRONTEND_DOMAIN') || '*',
+        origin: frontendDomain,
         methods: ['GET', 'HEAD', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,

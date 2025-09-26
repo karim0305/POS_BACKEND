@@ -18,8 +18,14 @@ async function bootstrap() {
   });
 
   // ✅ Enable CORS
+  const frontendDomain =
+    configService.get<string>('VERCEL_DOMAIN') || // vercel wali domain ENV me rakho
+    configService.get<string>('FRONTEND_DOMAIN') || // agar ye na ho to frontend wali
+    '*'; // agar dono na ho to *
+
+
   app.enableCors({
-    origin: configService.get<string>('FRONTEND_DOMAIN') || '*',
+   origin: frontendDomain,
     methods: ['GET', 'HEAD', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
