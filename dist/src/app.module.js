@@ -21,6 +21,7 @@ const dashboard_module_1 = require("./dashboard/dashboard.module");
 const customer_module_1 = require("./customer/customer.module");
 const reports_module_1 = require("./reports/reports.module");
 const cloudinary_module_1 = require("./config/cloudinary.module");
+const auth_module_module_1 = require("./user/auth/auth-module.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -67,6 +68,7 @@ exports.AppModule = AppModule = __decorate([
             customer_module_1.CustomerModule,
             reports_module_1.ReportsModule,
             cloudinary_module_1.CloudinaryModule,
+            auth_module_module_1.AuthModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

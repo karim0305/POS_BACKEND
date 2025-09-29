@@ -22,7 +22,7 @@ async function bootstrap() {
     configService.get<string>('VERCEL_DOMAIN') || // vercel wali domain ENV me rakho
     configService.get<string>('FRONTEND_DOMAIN') || // agar ye na ho to frontend wali
     '*'; // agar dono na ho to *
-
+ 
 
   app.enableCors({
    origin: frontendDomain,

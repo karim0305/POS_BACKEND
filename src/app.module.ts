@@ -12,6 +12,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { CustomerModule } from './customer/customer.module';
 import { ReportsModule } from './reports/reports.module';
 import { CloudinaryModule } from './config/cloudinary.module';
+import { AuthModule } from './user/auth/auth-module.module';
 
 
 @Module({
@@ -59,6 +60,7 @@ import { CloudinaryModule } from './config/cloudinary.module';
     CustomerModule,
     ReportsModule,
     CloudinaryModule,
+    AuthModule,
 
   ],
   controllers: [AppController],
